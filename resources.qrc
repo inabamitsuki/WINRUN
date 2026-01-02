@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>icon/main.png</file>
+        <file>icon/desktop.png</file>
+        <file>icon/folder.png</file>
+        <file>icon/settings.png</file>
+        <file>icon/info.png</file>
+        <file>icon/logo.png</file>
+        <file>icon/menu.png</file>
+        <file>icon/menur.png</file>
+        <file>icon/start.png</file>
+        <file>icon/stop.png</file>
+        <file>icon/reset.png</file>
+    </qresource>
+</RCC>
