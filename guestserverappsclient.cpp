@@ -9,6 +9,7 @@ GuestServerAppsClient::GuestServerAppsClient(const QString &host, quint16 port, 
     : QObject(parent)
     , m_networkManager(new QNetworkAccessManager(this))
     , m_baseUrl(host.isEmpty() || port == 0 ? QString() : QString("http://%1:%2").arg(host).arg(port))
+    , m_cache(new AppsCache(this))
 {
     connect(m_networkManager, &QNetworkAccessManager::finished,
             this, [this](QNetworkReply *reply) {
@@ -22,6 +23,8 @@ GuestServerAppsClient::GuestServerAppsClient(const QString &host, quint16 port, 
 
 GuestServerAppsClient::~GuestServerAppsClient()
 {
+    // Save apps to cache when client is destroyed
+    saveAppsToCache();
 }
 
 void GuestServerAppsClient::setServerEndpoint(const QString &host, quint16 port)
@@ -105,8 +108,9 @@ void GuestServerAppsClient::onAppsReply(QNetworkReply *reply)
         app.publisher = appObj["publisher"].toString();
         app.installLocation = appObj["install_location"].toString();
         app.displayVersion = appObj["display_version"].toString();
-        app.iconPath = appObj["icon_path"].toString();
-        app.uninstallString = appObj["uninstall_string"].toString();
+        // Handle null icon_path - toString() returns empty string for null, which is fine
+        app.iconPath = appObj["icon_path"].isNull() ? QString() : appObj["icon_path"].toString();
+        app.uninstallString = appObj["uninstall_string"].isNull() ? QString() : appObj["uninstall_string"].toString();
         
         if (!app.name.isEmpty()) {
             m_apps.append(app);
@@ -170,6 +174,8 @@ void GuestServerAppsClient::onIconReply(QNetworkReply *reply)
     
     if (reply->error() != QNetworkReply::NoError) {
         qWarning() << "Failed to fetch icon:" << iconPath << reply->errorString();
+        // Emit empty icon data to signal failure - UI will show first letter
+        emit iconReceived(iconPath, QByteArray());
         return;
     }
     
@@ -184,6 +190,27 @@ void GuestServerAppsClient::onIconReply(QNetworkReply *reply)
                 app.iconData = iconData;
                 break;
             }
+        }
+    } else {
+        // Empty response - emit empty icon data
+        emit iconReceived(iconPath, QByteArray());
+    }
+}
+
+void GuestServerAppsClient::saveAppsToCache()
+{
+    if (!m_apps.isEmpty() && m_cache) {
+        m_cache->saveApps(m_apps);
+    }
+}
+
+void GuestServerAppsClient::loadAppsFromCache()
+{
+    if (m_cache && m_cache->cacheExists()) {
+        QList<InstalledApp> cachedApps;
+        if (m_cache->loadApps(cachedApps)) {
+            m_apps = cachedApps;
+            emit appsReceived(m_apps);
         }
     }
 }

@@ -123,6 +123,7 @@ private slots:
     void onVmConnect();
     void onConnectToGuestServer();
     void onVmSelectionChanged(int index);
+    void onAppsReceived(const QList<InstalledApp> &apps);
     
 private:
     AddProgramDialog *addProgramDialog;

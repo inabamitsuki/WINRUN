@@ -30,6 +30,8 @@ set(PROJECT_SOURCES
     guestserverdialog.h
     guestserverappsclient.cpp
     guestserverappsclient.h
+    appscache.cpp
+    appscache.h
     appslistwidget.cpp
     appslistwidget.h
     resources.qrc

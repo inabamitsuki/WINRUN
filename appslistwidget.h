@@ -28,13 +28,14 @@ private slots:
 private:
     void setupUI();
     void updateAppsDisplay();
+    void launchAppWithXfreerdp(const QString &appName, const QString &appPath);
     
     QScrollArea *m_scrollArea;
     QWidget *m_scrollContent;
     QGridLayout *m_gridLayout;
     QList<InstalledApp> m_apps;
     QMap<QString, QByteArray> m_iconCache;
-    QMap<QPushButton*, QString> m_buttonToAppPath;
+    QMap<QPushButton*, InstalledApp> m_buttonToApp;  // Store full app info for launching
     QMap<QString, QPushButton*> m_iconPathToButton;
     QMap<QPushButton*, QLabel*> m_buttonToIconLabel;
 };

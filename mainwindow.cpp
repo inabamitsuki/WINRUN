@@ -463,6 +463,8 @@ void MainWindow::setupMainContent()
     // Connect apps client signals
     connect(m_guestServerAppsClient, &GuestServerAppsClient::appsReceived,
             m_appsListWidget, &AppsListWidget::setApps);
+    connect(m_guestServerAppsClient, &GuestServerAppsClient::appsReceived,
+            this, &MainWindow::onAppsReceived);
     connect(m_guestServerAppsClient, &GuestServerAppsClient::iconReceived,
             m_appsListWidget, &AppsListWidget::setIcon);
     connect(m_guestServerAppsClient, &GuestServerAppsClient::error,
@@ -678,20 +680,6 @@ void MainWindow::setupDesktopPage()
     QHBoxLayout *rootLayout = new QHBoxLayout(desktopPage);
     rootLayout->setContentsMargins(0, 0, 0, 0);
     rootLayout->setSpacing(0);
-
-    // Left side: preview frame
-    QFrame *previewContainer = new QFrame();
-    previewContainer->setStyleSheet("background-color: #f4f6f8;");
-    QVBoxLayout *previewLayout = new QVBoxLayout(previewContainer);
-    previewLayout->setContentsMargins(30, 30, 30, 30);
-    previewLayout->setSpacing(15);
-
-    vmPreviewFrame = new QFrame();
-    vmPreviewFrame->setMinimumSize(640, 360);
-    vmPreviewFrame->setStyleSheet("background: #dfe6ee; border: 1px solid #c0c7cd; border-radius: 8px;");
-    previewLayout->addWidget(vmPreviewFrame, 1);
-
-    rootLayout->addWidget(previewContainer, 3);
 
     // Right side: VM controls and actions
     QWidget *controlsContainer = new QWidget();
@@ -967,13 +955,24 @@ void MainWindow::refreshGuestServerEndpoint()
             if (!m_guestServerRefreshTimer->isActive()) {
                 m_guestServerRefreshTimer->start();
             }
+            // Only log error if we have a VM selected and it's running but IP couldn't be resolved
+            QString state = vmStateByName.value(vmName).toLower();
+            bool isRunning = state.contains("run");
+            if (isRunning) {
+                qDebug() << "Could not resolve VM IP for guest server. VM:" << vmName << "Will retry...";
+            } else {
+                qDebug() << "VM not running. VM:" << vmName << "Waiting for VM to start...";
+            }
         } else {
             // Stop timer if not on Desktop page or no VM selected
             if (m_guestServerRefreshTimer->isActive()) {
                 m_guestServerRefreshTimer->stop();
             }
+            // Only log if VM is selected but we're not on the right page
+            if (hasVm) {
+                qDebug() << "VM selected but not on Desktop page. VM:" << vmName;
+            }
         }
-        qDebug() << "Could not resolve VM IP for guest server. VM:" << vmName << "Will retry...";
     }
 }
 
@@ -1147,4 +1146,17 @@ void MainWindow::setupAboutPage()
     layout->addWidget(version);
     layout->addWidget(description);
     layout->addStretch();
+}
+
+void MainWindow::onAppsReceived(const QList<InstalledApp> &apps)
+{
+    // When apps are received on All Programs page, stop scanning
+    // but keep the system monitor running on Desktop page
+    if (stackedWidget && stackedWidget->currentWidget() == allProgramsPage) {
+        // Stop the guest server refresh timer when apps are successfully received
+        if (m_guestServerRefreshTimer && m_guestServerRefreshTimer->isActive()) {
+            m_guestServerRefreshTimer->stop();
+            qDebug() << "Apps received on All Programs page. Stopped scanning. Total apps:" << apps.size();
+        }
+    }
 }

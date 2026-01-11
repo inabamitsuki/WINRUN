@@ -6,6 +6,7 @@
 #include <QNetworkReply>
 #include <QJsonArray>
 #include <QJsonObject>
+#include "appscache.h"
 
 struct InstalledApp {
     QString name;
@@ -28,6 +29,8 @@ public:
     void fetchApps();
     void fetchIcon(const QString &iconPath);
     void setServerEndpoint(const QString &host, quint16 port);
+    void saveAppsToCache();
+    void loadAppsFromCache();
     
     QList<InstalledApp> apps() const { return m_apps; }
 
@@ -45,6 +48,7 @@ private:
     QString m_baseUrl;
     QList<InstalledApp> m_apps;
     QMap<QString, QNetworkReply*> m_pendingIconRequests;
+    AppsCache *m_cache;
 };
 
 #endif // GUESTSERVERAPPSCLIENT_H
